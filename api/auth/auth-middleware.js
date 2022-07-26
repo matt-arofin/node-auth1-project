@@ -1,5 +1,5 @@
-const db = require('../../data/db-config');
-const Model = require('../users/users-model');
+// const db = require('../../data/db-config');
+const User = require('../users/users-model');
 /*
   If the user does not have a session saved in the server
 
@@ -24,15 +24,27 @@ function restricted(req, res, next) {
   }
 */
 async function checkUsernameFree(req, res, next) {
-  const { username } = req.body;
-
-  const taken = await Model.findBy(username)
-  if(taken != null) {
-    res.status(422).json({message: "Username taken"});
-  } else {
-    next();
-    return;
+  try {
+    const user = await User.findBy({username: req.body.username});
+    if(!user.length) {
+      next()
+    }
+    else {
+      next({message: "Username taken", status: 422})
+    }
+  } catch(err){
+    next(err)
   }
+  
+  // const { username } = req.body;
+
+  // const taken = await User.findBy(username)
+  // if(taken != null) {
+  //   res.status(422).json({message: "Username taken"});
+  // } else {
+  //   next();
+  //   return;
+  // }
 }
 
 /*
@@ -44,13 +56,25 @@ async function checkUsernameFree(req, res, next) {
   }
 */
 async function checkUsernameExists(req, res, next) {
-  const { username } = req.body;
-
-  const exists = Model.findBy(username);
-  if(exists == null){
-    next()
+  try {
+    const user = await User.findBy({username: req.body.username});
+    if(user.length) {
+      req.user = user[0]
+      next()
+    }
+    else {
+      next({message: "Invalid credentials", status: 401})
+    }
+  } catch(err) {
+    next(err)
   }
-  next()
+  // const { username } = req.body;
+
+  // const exists = User.findBy(username);
+  // if(exists == null){
+  //   next()
+  // }
+  // next()
 }
 
 /*
@@ -62,7 +86,11 @@ async function checkUsernameExists(req, res, next) {
   }
 */
 function checkPasswordLength(req, res, next) {
-  next()
+  if(!req.body.password || req.body.password <= 3){
+    next({message: " Password must be longer than 3 chars", status: 422})
+  } else {
+    next()
+  }
 }
 
 // Don't forget to add these to the `exports` object so they can be required in other modules
